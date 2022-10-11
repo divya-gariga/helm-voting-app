@@ -1,0 +1,70 @@
+namespace: voting-app
+services:
+  - name: frontend-service
+    type: ClusterIP
+    port: 3000
+    targetPort: 3000
+    selector: frontend
+  - name: api-service
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+    selector: api
+  - name: mongo
+    clusterIP: None
+    port: 27017
+    targetPort: 27017
+    selector: mongodb
+deployments:
+  - name: mongodb
+    kind: StatefulSet
+    replicas: 3
+    matchLabels: mongodb
+    podName: mongodb
+    containerName: db-img
+    secrets: regcred
+    image: ghcr.io/divya-gariga/db-votelang
+    port: 27017
+    env:
+      - name : MONGO_USERNAME
+        value: admin
+      - name : MONGO_PASSWORD
+        value: password
+      - name: MONGO_CONN_STR
+        value: "mongodb://admin:password@mongodb-0.mongo,mongodb-1.mongo,mongodb-2.mongo:27017/langdb"
+    volumeTemplate:
+      name: pvc
+      mountPath: /data/db
+      accessmode: ReadWriteOnce
+      storage: 1Gi
+  - name: api-deploy
+    kind: Deployment
+    replicas: 3
+    matchLabels: api
+    podName: api
+    containerName: backend-img
+    image: ghcr.io/divya-gariga/be-votelang
+    port: 8080
+    secrets: regcred
+    env:
+      - name : MONGO_USERNAME
+        value: admin
+      - name : MONGO_PASSWORD
+        value: password
+      - name: MONGO_CONN_STR
+        value: "mongodb://admin:password@mongodb-0.mongo,mongodb-1.mongo,mongodb-2.mongo:27017/langdb"    
+  - name: frontend-deploy
+    kind: Deployment
+    replicas: 3
+    matchLabels: frontend
+    podName: frontend
+    containerName: frontend-img
+    image: ghcr.io/divya-gariga/fe-votelang
+    port: 3000
+    secrets: regcred
+  
+
+
+
+    
+

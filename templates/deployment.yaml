@@ -1,0 +1,57 @@
+{{- range .Values.deployments }}
+apiVersion: apps/v1
+kind: {{ .kind }}
+metadata:
+  name: {{ .name }}
+  labels:
+    name: {{ .name }}
+  namespace: {{ $.Values.namespace }}
+spec:
+  {{- if eq .kind "StatefulSet" }}
+  serviceName: mongo
+  {{- end }}
+  replicas: {{ .replicas }}
+  selector:
+    matchLabels:
+      name: {{ .matchLabels }}
+  template:
+    metadata:
+      name: {{ .podName }}
+      labels:
+        name: {{ .podName }}
+    spec:
+      containers:
+        - name: {{ .containerName }}
+          image: {{ .image}}
+          ports:
+            - containerPort: {{ .port }}
+          {{- if eq .kind "StatefulSet" }}
+          volumeMounts:
+            - name: {{ .volumeTemplate.name }}
+              mountPath: {{ .volumeTemplate.mountPath }}
+          {{- end }}
+          {{- if or (eq .name "api-deploy") (eq .name "db-deploy")}}
+          env:
+            {{- range .env}}
+            - name: {{ .name }}
+              value: {{ .value }}
+            {{- end }}
+          {{- end }}
+      imagePullSecrets:
+        - name: {{ .secrets }}
+  {{- if eq .kind "StatefulSet" }}
+  volumeClaimTemplates:
+    - metadata:
+        name: {{ .volumeTemplate.name }}
+        namespace: {{ $.Values.namespace }}
+        annotations:
+          volume.beta.kubernetes.io/storage-class: "standard"
+      spec:
+        accessModes: 
+          - ReadWriteOnce
+        resources:
+          requests: 
+            storage: {{ .volumeTemplate.storage }}
+  {{- end }}
+---
+{{- end }}

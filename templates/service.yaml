@@ -1,0 +1,22 @@
+{{ range .Values.services }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .name }}
+  namespace: {{ $.Values.namespace }}
+  labels:
+    name: {{ .name}}
+spec:
+  {{ if eq .name "mongo" }}
+  clusterIP: None
+  {{ else }}
+  type: {{ .type }}
+  {{ end }}
+  ports:
+    - port: {{ .port}}
+      targetPort: {{ .targetPort}}
+  selector:
+    name: {{ .selector}}
+---
+{{ end }}
+    
